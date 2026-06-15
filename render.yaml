@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fincontrol-finance-tracker
+    runtime: python
+    plan: starter
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+    healthCheckPath: /_stcore/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: FINCONTROL_CSV_PATH
+        value: /var/data/transactions.csv
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    disk:
+      name: transaction-data
+      mountPath: /var/data
+      sizeGB: 1

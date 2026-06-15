@@ -49,7 +49,19 @@ The app creates `transactions.csv` automatically when it first runs.
 
 ## Deployment
 
-This is a Streamlit application, so I deploy it with a service that runs a persistent Python process, such as Streamlit Community Cloud. Vercel's Python runtime expects an ASGI or WSGI application, so it cannot run this Streamlit interface directly without replacing the UI framework.
+I included a `render.yaml` Blueprint so the app can run as a Render web service.
+
+[Deploy to Render](https://dashboard.render.com/blueprint/new?repo=https://github.com/tilinkkr/financeproject)
+
+The Blueprint:
+
+- Installs the packages from `requirements.txt`
+- Starts Streamlit on Render's assigned port
+- Uses the Singapore region
+- Redeploys automatically when I push to `main`
+- Stores `transactions.csv` on a persistent disk at `/var/data`
+
+The persistent disk requires a paid Render service. I use the Starter plan in the Blueprint because Render's free filesystem is temporary and would lose saved transactions after a restart or redeploy.
 
 ## Next Steps
 
