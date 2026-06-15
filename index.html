@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A simple browser-based personal finance tracker.">
+  <title>FinControl - Personal Finance Tracker</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #2555d9;
+      --blue-dark: #163ea8;
+      --blue-soft: #edf3ff;
+      --ink: #14213d;
+      --muted: #64748b;
+      --line: #dce4ef;
+      --surface: #ffffff;
+      --background: #f4f7fb;
+      --green: #0f9f6e;
+      --green-soft: #e9f8f2;
+      --red: #dc3f4f;
+      --red-soft: #fff0f2;
+      --amber: #b66a05;
+      --amber-soft: #fff6df;
+      --shadow: 0 12px 32px rgba(29, 50, 91, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--background);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 264px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      background: var(--blue);
+      color: white;
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .brand strong { display: block; font-size: 19px; }
+    .brand span { color: var(--muted); font-size: 13px; }
+
+    .nav-label {
+      margin: 24px 0 8px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin: 5px 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: transparent;
+      color: #334155;
+      text-align: left;
+      font-weight: 650;
+    }
+
+    .nav-button.active,
+    .nav-button:hover {
+      background: var(--blue-soft);
+      color: var(--blue-dark);
+    }
+
+    .primary {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px 18px;
+      border-radius: 12px;
+      background: var(--blue);
+      color: white;
+      font-weight: 750;
+    }
+
+    .primary:hover { background: var(--blue-dark); }
+
+    .budget-panel {
+      margin-top: 34px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 43px;
+      padding: 9px 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: white;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 85, 217, .12);
+    }
+
+    main {
+      width: min(1320px, 100%);
+      margin: 0 auto;
+      padding: 38px 42px 60px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 7px; font-size: clamp(28px, 4vw, 38px); letter-spacing: -.035em; }
+    h2 { margin-bottom: 4px; font-size: 19px; }
+    .subtitle { color: var(--muted); }
+
+    .header-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .secondary {
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: white;
+      color: #334155;
+      font-weight: 700;
+    }
+
+    .secondary:hover { border-color: var(--blue); color: var(--blue); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 800;
+      letter-spacing: -.035em;
+    }
+
+    .income { color: var(--green); }
+    .expense { color: var(--red); }
+
+    .insight {
+      margin-bottom: 20px;
+      padding: 18px 20px;
+      border: 1px solid #f1d48e;
+      border-radius: 15px;
+      background: var(--amber-soft);
+      color: #754408;
+    }
+
+    .insight strong { display: block; margin-bottom: 4px; }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(330px, .9fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 12px;
+    }
+
+    #chart { width: 100%; height: 350px; }
+
+    .breakdown {
+      display: grid;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .breakdown-row {
+      display: grid;
+      grid-template-columns: minmax(80px, 1fr) 2fr auto;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8edf5;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin: 16px 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #e8edf4;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #475569;
+      font-size: 12px;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    .amount-income { color: var(--green); font-weight: 750; }
+    .amount-expense { color: var(--red); font-weight: 750; }
+
+    .delete {
+      padding: 6px 9px;
+      border-radius: 7px;
+      background: var(--red-soft);
+      color: var(--red);
+      font-weight: 750;
+    }
+
+    .empty {
+      padding: 42px 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    dialog {
+      width: min(520px, calc(100% - 28px));
+      padding: 0;
+      border: 0;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .25);
+    }
+
+    dialog::backdrop { background: rgba(15, 23, 42, .5); }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 22px 12px;
+    }
+
+    .close {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 20px;
+    }
+
+    form { padding: 10px 22px 22px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .full { grid-column: 1 / -1; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+    .form-actions .primary { width: auto; margin: 0; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 10;
+      padding: 12px 16px;
+      border-radius: 11px;
+      background: #0f172a;
+      color: white;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: .2s ease;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      aside { position: static; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav-label, .nav-button { display: none; }
+      .budget-panel { margin-top: 20px; }
+      main { padding: 28px 20px 50px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 660px) {
+      aside { padding: 20px; }
+      .brand { margin-bottom: 16px; }
+      .page-header { display: block; }
+      .header-actions { margin-top: 15px; }
+      .metrics { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr 1fr; }
+      .filters .secondary { min-height: 43px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">$</div>
+        <div><strong>FinControl</strong><span>Personal Finance Tracker</span></div>
+      </div>
+
+      <div class="nav-label">Workspace</div>
+      <button class="nav-button active" type="button">Overview</button>
+      <button class="primary" id="open-form" type="button">+ Add transaction</button>
+
+      <div class="budget-panel">
+        <label for="budget">Monthly budget target</label>
+        <input id="budget" type="number" min="0" step="50" value="2000">
+        <p class="subtitle" style="font-size:12px;margin-top:8px">Saved only in this browser.</p>
+      </div>
+    </aside>
+
+    <main>
+      <header class="page-header">
+        <div>
+          <h1>Financial overview</h1>
+          <p class="subtitle">Track what comes in, what goes out, and what is safe to spend.</p>
+        </div>
+        <div class="header-actions">
+          <input id="csv-file" type="file" accept=".csv,text/csv" hidden>
+          <button class="secondary" id="import-csv" type="button">Import CSV</button>
+          <button class="secondary" id="export-csv" type="button">Export CSV</button>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Financial summary">
+        <article class="card"><div class="metric-label">Total income</div><div class="metric-value income" id="total-income">$0.00</div></article>
+        <article class="card"><div class="metric-label">Total expense</div><div class="metric-value expense" id="total-expense">$0.00</div></article>
+        <article class="card"><div class="metric-label">Net balance</div><div class="metric-value" id="net-balance">$0.00</div></article>
+        <article class="card"><div class="metric-label">Top spending category</div><div class="metric-value" id="top-category">No expenses</div></article>
+      </section>
+
+      <section class="insight" id="insight" aria-live="polite"></section>
+
+      <section class="content-grid">
+        <article class="card">
+          <div class="section-head">
+            <div><h2>Expenses by category</h2><span class="subtitle">Interactive spending distribution</span></div>
+          </div>
+          <div id="chart" role="img" aria-label="Expenses by category chart"></div>
+        </article>
+
+        <article class="card">
+          <div class="section-head">
+            <div><h2>Category breakdown</h2><span class="subtitle">Amounts and relative share</span></div>
+          </div>
+          <div class="breakdown" id="breakdown"></div>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div><h2>Transactions</h2><span class="subtitle" id="transaction-count">0 transactions</span></div>
+        </div>
+
+        <div class="filters">
+          <div><label for="category-filter">Category</label><select id="category-filter"><option value="">All categories</option></select></div>
+          <div><label for="type-filter">Type</label><select id="type-filter"><option value="">All types</option><option>Income</option><option>Expense</option></select></div>
+          <div><label for="start-date">From</label><input id="start-date" type="date"></div>
+          <div><label for="end-date">To</label><input id="end-date" type="date"></div>
+          <button class="secondary" id="clear-filters" type="button">Clear</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Note</th><th>Amount</th><th>Action</th></tr></thead>
+            <tbody id="transaction-body"></tbody>
+          </table>
+          <div class="empty" id="empty-state">No transactions yet. Add one to start tracking.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="transaction-dialog">
+    <div class="modal-head"><div><h2>Add a transaction</h2><span class="subtitle">Record income or an expense</span></div><button class="close" id="close-form" type="button" aria-label="Close">x</button></div>
+    <form id="transaction-form">
+      <div class="form-grid">
+        <div><label for="type">Type</label><select id="type" required><option>Expense</option><option>Income</option></select></div>
+        <div><label for="amount">Amount</label><input id="amount" type="number" min="0.01" step="0.01" required></div>
+        <div><label for="category">Category</label><input id="category" list="category-options" maxlength="50" required><datalist id="category-options"><option>Food</option><option>Housing</option><option>Transport</option><option>Shopping</option><option>Utilities</option><option>Health</option><option>Salary</option><option>Other</option></datalist></div>
+        <div><label for="date">Date</label><input id="date" type="date" required></div>
+        <div class="full"><label for="note">Note (optional)</label><input id="note" maxlength="140" placeholder="What was this for?"></div>
+      </div>
+      <div class="form-actions"><button class="secondary" id="cancel-form" type="button">Cancel</button><button class="primary" type="submit">Save transaction</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const STORAGE_KEY = "fincontrol.transactions.v1";
+    const BUDGET_KEY = "fincontrol.budget.v1";
+    const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+    const elements = {
+      body: document.querySelector("#transaction-body"),
+      empty: document.querySelector("#empty-state"),
+      count: document.querySelector("#transaction-count"),
+      categoryFilter: document.querySelector("#category-filter"),
+      typeFilter: document.querySelector("#type-filter"),
+      startDate: document.querySelector("#start-date"),
+      endDate: document.querySelector("#end-date"),
+      budget: document.querySelector("#budget"),
+      dialog: document.querySelector("#transaction-dialog"),
+      form: document.querySelector("#transaction-form"),
+      toast: document.querySelector("#toast")
+    };
+
+    let transactions = loadTransactions();
+
+    function loadTransactions() {
+      try {
+        const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveTransactions() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    }
+
+    function today() {
+      const date = new Date();
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[character]);
+    }
+
+    function filteredTransactions() {
+      const category = elements.categoryFilter.value;
+      const type = elements.typeFilter.value;
+      const start = elements.startDate.value;
+      const end = elements.endDate.value;
+      return transactions
+        .filter(item => !category || item.Category === category)
+        .filter(item => !type || item.Type === type)
+        .filter(item => !start || item.Date >= start)
+        .filter(item => !end || item.Date <= end)
+        .sort((a, b) => b.Date.localeCompare(a.Date));
+    }
+
+    function expenseGroups() {
+      return transactions
+        .filter(item => item.Type === "Expense")
+        .reduce((groups, item) => {
+          groups[item.Category] = (groups[item.Category] || 0) + Number(item.Amount);
+          return groups;
+        }, {});
+    }
+
+    function renderSummary() {
+      const income = transactions.filter(item => item.Type === "Income").reduce((sum, item) => sum + Number(item.Amount), 0);
+      const expense = transactions.filter(item => item.Type === "Expense").reduce((sum, item) => sum + Number(item.Amount), 0);
+      const groups = expenseGroups();
+      const top = Object.entries(groups).sort((a, b) => b[1] - a[1])[0];
+
+      document.querySelector("#total-income").textContent = money.format(income);
+      document.querySelector("#total-expense").textContent = money.format(expense);
+      document.querySelector("#net-balance").textContent = money.format(income - expense);
+      document.querySelector("#top-category").textContent = top ? top[0] : "No expenses";
+
+      const now = new Date();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const remainingDays = Math.max(daysInMonth - now.getDate() + 1, 1);
+      const budget = Math.max(Number(elements.budget.value) || 0, 0);
+      const remaining = budget - expense;
+      const safeDaily = remaining / remainingDays;
+      const insight = document.querySelector("#insight");
+
+      if (remaining >= 0) {
+        insight.innerHTML = `<strong>Safe daily spending: ${money.format(safeDaily)}</strong>You have ${money.format(remaining)} left for ${remainingDays} day${remainingDays === 1 ? "" : "s"} in this month.`;
+      } else {
+        insight.innerHTML = `<strong>Budget exceeded by ${money.format(Math.abs(remaining))}</strong>Your safe daily spending is ${money.format(0)} until the monthly budget is adjusted.`;
+      }
+    }
+
+    function renderFilters() {
+      const selected = elements.categoryFilter.value;
+      const categories = [...new Set(transactions.map(item => item.Category))].sort();
+      elements.categoryFilter.innerHTML = `<option value="">All categories</option>${categories.map(category => `<option ${category === selected ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}`;
+    }
+
+    function renderTable() {
+      const rows = filteredTransactions();
+      elements.count.textContent = `${rows.length} transaction${rows.length === 1 ? "" : "s"}`;
+      elements.empty.hidden = rows.length > 0;
+      elements.body.innerHTML = rows.map(item => {
+        const sign = item.Type === "Income" ? "+" : "-";
+        const amountClass = item.Type === "Income" ? "amount-income" : "amount-expense";
+        return `<tr>
+          <td>${escapeHtml(item.Date)}</td>
+          <td>${escapeHtml(item.Type)}</td>
+          <td>${escapeHtml(item.Category)}</td>
+          <td>${escapeHtml(item.Note || "-")}</td>
+          <td class="${amountClass}">${sign}${money.format(Number(item.Amount))}</td>
+          <td><button class="delete" type="button" data-delete="${escapeHtml(item.id)}">Delete</button></td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderChart() {
+      const entries = Object.entries(expenseGroups()).sort((a, b) => b[1] - a[1]);
+      const chart = document.querySelector("#chart");
+      const breakdown = document.querySelector("#breakdown");
+
+      if (!entries.length) {
+        Plotly.purge(chart);
+        chart.innerHTML = `<div class="empty">Add an expense to see the chart.</div>`;
+        breakdown.innerHTML = `<div class="empty">No spending categories yet.</div>`;
+        return;
+      }
+
+      const labels = entries.map(entry => entry[0]);
+      const values = entries.map(entry => entry[1]);
+      const total = values.reduce((sum, value) => sum + value, 0);
+      chart.innerHTML = "";
+      Plotly.newPlot(chart, [{
+        type: "pie",
+        hole: .58,
+        labels,
+        values,
+        textinfo: "label+percent",
+        textposition: "auto",
+        hovertemplate: "%{label}<br>%{value:$,.2f}<br>%{percent}<extra></extra>",
+        marker: { colors: ["#2555d9", "#18b4a4", "#f59e0b", "#8b5cf6", "#ef5b6a", "#3b82f6", "#84cc16"] }
+      }], {
+        margin: { t: 10, r: 10, b: 10, l: 10 },
+        paper_bgcolor: "transparent",
+        plot_bgcolor: "transparent",
+        showlegend: false,
+        annotations: [{ text: `Total<br><b>${money.format(total)}</b>`, showarrow: false, font: { size: 16, color: "#14213d" } }]
+      }, { responsive: true, displaylogo: false });
+
+      breakdown.innerHTML = entries.map(([category, amount]) => {
+        const percent = total ? (amount / total) * 100 : 0;
+        return `<div class="breakdown-row"><span>${escapeHtml(category)}</span><div class="bar"><span style="width:${percent}%"></span></div><strong>${money.format(amount)}</strong></div>`;
+      }).join("");
+    }
+
+    function render() {
+      renderFilters();
+      renderSummary();
+      renderTable();
+      renderChart();
+    }
+
+    function notify(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add("show");
+      setTimeout(() => elements.toast.classList.remove("show"), 2200);
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [], field = "", quoted = false;
+      for (let index = 0; index < text.length; index += 1) {
+        const character = text[index];
+        if (quoted && character === '"' && text[index + 1] === '"') { field += '"'; index += 1; }
+        else if (character === '"') quoted = !quoted;
+        else if (character === "," && !quoted) { row.push(field); field = ""; }
+        else if ((character === "\n" || character === "\r") && !quoted) {
+          if (character === "\r" && text[index + 1] === "\n") index += 1;
+          row.push(field); field = "";
+          if (row.some(value => value !== "")) rows.push(row);
+          row = [];
+        } else field += character;
+      }
+      if (field || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    document.querySelector("#open-form").addEventListener("click", () => {
+      elements.form.reset();
+      document.querySelector("#type").value = "Expense";
+      document.querySelector("#date").value = today();
+      elements.dialog.showModal();
+      document.querySelector("#amount").focus();
+    });
+
+    ["#close-form", "#cancel-form"].forEach(selector => document.querySelector(selector).addEventListener("click", () => elements.dialog.close()));
+
+    elements.form.addEventListener("submit", event => {
+      event.preventDefault();
+      const amount = Number(document.querySelector("#amount").value);
+      if (!Number.isFinite(amount) || amount <= 0) return notify("Enter an amount greater than zero.");
+      transactions.push({
+        id: crypto.randomUUID(),
+        Date: document.querySelector("#date").value,
+        Type: document.querySelector("#type").value,
+        Category: document.querySelector("#category").value.trim(),
+        Amount: amount,
+        Note: document.querySelector("#note").value.trim()
+      });
+      saveTransactions();
+      elements.dialog.close();
+      render();
+      notify("Transaction saved.");
+    });
+
+    elements.body.addEventListener("click", event => {
+      const id = event.target.dataset.delete;
+      if (!id || !confirm("Delete this transaction?")) return;
+      transactions = transactions.filter(item => item.id !== id);
+      saveTransactions();
+      render();
+      notify("Transaction deleted.");
+    });
+
+    [elements.categoryFilter, elements.typeFilter, elements.startDate, elements.endDate].forEach(input => input.addEventListener("change", renderTable));
+
+    document.querySelector("#clear-filters").addEventListener("click", () => {
+      elements.categoryFilter.value = "";
+      elements.typeFilter.value = "";
+      elements.startDate.value = "";
+      elements.endDate.value = "";
+      renderTable();
+    });
+
+    elements.budget.value = localStorage.getItem(BUDGET_KEY) || "2000";
+    elements.budget.addEventListener("input", () => {
+      localStorage.setItem(BUDGET_KEY, elements.budget.value);
+      renderSummary();
+    });
+
+    document.querySelector("#export-csv").addEventListener("click", () => {
+      const columns = ["Date", "Type", "Category", "Amount", "Note"];
+      const csv = [columns.join(","), ...transactions.map(item => columns.map(column => csvEscape(item[column])).join(","))].join("\n");
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      link.download = "transactions.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      notify("CSV exported.");
+    });
+
+    document.querySelector("#import-csv").addEventListener("click", () => document.querySelector("#csv-file").click());
+    document.querySelector("#csv-file").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const rows = parseCsv(await file.text());
+      const expected = ["Date", "Type", "Category", "Amount", "Note"];
+      if (!rows.length || expected.some((column, index) => rows[0][index] !== column)) {
+        event.target.value = "";
+        return notify("CSV columns must be Date, Type, Category, Amount, Note.");
+      }
+      const imported = rows.slice(1).map(row => ({
+        id: crypto.randomUUID(),
+        Date: row[0],
+        Type: row[1],
+        Category: row[2],
+        Amount: Number(row[3]),
+        Note: row[4] || ""
+      })).filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.Date) && ["Income", "Expense"].includes(item.Type) && item.Category && Number.isFinite(item.Amount));
+      transactions = imported;
+      saveTransactions();
+      event.target.value = "";
+      render();
+      notify(`${imported.length} transaction${imported.length === 1 ? "" : "s"} imported.`);
+    });
+
+    document.querySelector("#date").value = today();
+    render();
+  </script>
+</body>
+</html>

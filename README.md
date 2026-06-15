@@ -49,9 +49,19 @@ The app creates `transactions.csv` automatically when it first runs.
 
 ## Deployment
 
-I included a `render.yaml` Blueprint so the app can run as a Render web service.
+### Vercel
 
-[Deploy to Render](https://dashboard.render.com/blueprint/new?repo=https://github.com/tilinkkr/financeproject)
+I included a separate browser-based version in `index.html` for Vercel. It has the transaction form, filters, summary metrics, Plotly chart, budget insight, and CSV import/export. Transactions are stored in the browser's local storage because Vercel Functions do not provide a persistent writable filesystem.
+
+[Deploy to Vercel](https://vercel.com/new/clone?repository-url=https://github.com/tilinmys/financeproject)
+
+The Vercel version does not require a build command. `vercel.json` serves `index.html`, and `.vercelignore` prevents Vercel from treating the Streamlit entry point as a Python Function.
+
+### Render
+
+I also included a `render.yaml` Blueprint so the original Python and Streamlit app can run as a Render web service.
+
+[Deploy to Render](https://dashboard.render.com/blueprint/new?repo=https://github.com/tilinmys/financeproject)
 
 The Blueprint:
 
